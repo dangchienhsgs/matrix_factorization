@@ -7,11 +7,11 @@ import utils.Printer;
 public class MainMF extends Main {
     public static void main(String argv[]) throws IOException {
         String dataset_name = "yelp";
-        String method = "itemknn";
+        String method = "fastals";
         double w0 = 10;
         boolean showProgress = false;
         boolean showLoss = true;
-        int factors = 64;
+        int factors = 16;
         int maxIter = 500;
         double reg = 0.01;
         double alpha = 0.75;
@@ -52,9 +52,14 @@ public class MainMF extends Main {
         }
 
         if (method.equalsIgnoreCase("fastals")) {
-            MF_fastALS fals = new MF_fastALS(trainMatrix, testRatings, topK, threadNum,
-                    factors, maxIter, w0, alpha, reg, init_mean, init_stdev, showProgress, showLoss);
-            evaluate_model(fals, "MF_fastALS");
+            for (int i=1; i<=10; i++) {
+                topK = i;
+                System.out.println("Evaluate for topK = " + i);
+                MF_fastALS fals = new MF_fastALS(trainMatrix, testRatings, negativeRatings, topK, threadNum,
+                        factors, maxIter, w0, alpha, reg, init_mean, init_stdev, showProgress, showLoss);
+                evaluate_model(fals, "MF_fastALS");
+                System.out.println("------------------------------------");
+            }
         }
 
         if (method.equalsIgnoreCase("als")) {

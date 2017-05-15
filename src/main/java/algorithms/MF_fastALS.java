@@ -8,10 +8,7 @@ import data_structure.Pair;
 import data_structure.SparseVector;
 import happy.coding.math.Randoms;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Random;
-import java.util.HashMap;
+import java.util.*;
 
 import utils.Printer;
 
@@ -62,6 +59,59 @@ public class MF_fastALS extends TopKRecommender {
                       int topK, int threadNum, int factors, int maxIter, double w0, double alpha, double reg,
                       double init_mean, double init_stdev, boolean showProgress, boolean showLoss) {
         super(trainMatrix, testRatings, topK, threadNum);
+        this.factors = factors;
+        this.maxIter = maxIter;
+        this.w0 = w0;
+        this.reg = reg;
+        this.init_mean = init_mean;
+        this.init_stdev = init_stdev;
+        this.showLoss = showLoss;
+        this.showProgress = showProgress;
+
+        // Set the Wi as a decay function w0 * pi ^ alpha
+        double sum = 0, Z = 0;
+        double[] p = new double[itemCount];
+        for (int i = 0; i < itemCount; i++) {
+            p[i] = trainMatrix.getColRef(i).itemCount();
+            sum += p[i];
+        }
+        // convert p[i] to probability
+        for (int i = 0; i < itemCount; i++) {
+            p[i] /= sum;
+            p[i] = Math.pow(p[i], alpha);
+            Z += p[i];
+        }
+        // assign weight
+        Wi = new double[itemCount];
+        for (int i = 0; i < itemCount; i++)
+            Wi[i] = w0 * p[i] / Z;
+
+        // By default, the weight for positive instance is uniformly 1.
+        W = new SparseMatrix(userCount, itemCount);
+        for (int u = 0; u < userCount; u++)
+            for (int i : trainMatrix.getRowRef(u).indexList())
+                W.setValue(u, i, 1);
+
+        // Init caches
+        prediction_users = new double[userCount];
+        prediction_items = new double[itemCount];
+        rating_users = new double[userCount];
+        rating_items = new double[itemCount];
+        w_users = new double[userCount];
+        w_items = new double[itemCount];
+
+        // Init model parameters
+        U = new DenseMatrix(userCount, factors);
+        V = new DenseMatrix(itemCount, factors);
+        U.init(init_mean, init_stdev);
+        V.init(init_mean, init_stdev);
+        initS();
+    }
+
+    public MF_fastALS(SparseMatrix trainMatrix, ArrayList<Rating> testRatings, List<List<Integer>> negativeRatings,
+                      int topK, int threadNum, int factors, int maxIter, double w0, double alpha, double reg,
+                      double init_mean, double init_stdev, boolean showProgress, boolean showLoss) {
+        super(trainMatrix, testRatings, negativeRatings, topK, threadNum);
         this.factors = factors;
         this.maxIter = maxIter;
         this.w0 = w0;

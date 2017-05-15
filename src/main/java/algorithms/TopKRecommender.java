@@ -233,6 +233,10 @@ public abstract class TopKRecommender {
         double[] result = new double[3];
 
         // create list of items
+        if (negativeRatings.size() <= u) {
+            System.out.println(u);
+        }
+
         List<Integer> items = negativeRatings.get(u);
         items.add(gtItem);
 
